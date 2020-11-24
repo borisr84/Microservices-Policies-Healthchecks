@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using PicturesCommon;
 using PicturesLib.Infra;
 using System;
 using System.Collections.Generic;
@@ -11,24 +13,27 @@ namespace LocalPicturesService.Service
 {
     public class PicturesService : IPicturesManager
     {
-        public async Task<IList<byte[]>> GetPictures()
+        private readonly string _imagesPath;
+        public PicturesService(IConfiguration configuration)
         {
-            var images = Directory.GetFiles(Path.Combine(Directory.GetCurrentDirectory(), "Pictures")).ToList();
+            _imagesPath = Path.Combine(Directory.GetCurrentDirectory(), configuration["ImagesPath"]);
+        }
 
-            IList<byte[]> imageList = new List<byte[]>();
-            foreach (var img in images)
+        public async Task<IList<Picture>> GetPictures()
+        {
+            var images = Directory.GetFiles(_imagesPath);
+
+            IList<Picture> imageList = new List<Picture>();
+            foreach (var imgUrl in images)
             {
-                imageList.Add(ImageToByteArray(Image.FromFile(img)));
+                imageList.Add(new Picture
+                {
+                    Filename = Path.GetFileName(imgUrl),
+                    Data = await File.ReadAllBytesAsync(imgUrl)
+                });
             }
 
             return imageList;
-        }
-
-
-        private byte[] ImageToByteArray(System.Drawing.Image img)
-        {
-            ImageConverter imgCon = new ImageConverter();
-            return (byte[])imgCon.ConvertTo(img, typeof(byte[]));
         }
     }
 }

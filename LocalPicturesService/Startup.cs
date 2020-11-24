@@ -1,3 +1,5 @@
+using HealthChecks.UI.Client;
+using LocalPicturesService.CustomHealthChecks;
 using LocalPicturesService.Service;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -29,6 +31,11 @@ namespace LocalPicturesService
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            //HealthChecks
+            services.AddHealthChecks().AddTypeActivatedCheck<PicturesExistenceCheck>(
+                "Pictures Existence Check", 
+                new object[] { Path.Combine(Directory.GetCurrentDirectory(), Configuration["ImagesPath"]) }
+            );
             services.AddTransient<IPicturesManager, PicturesService>();
             services.AddControllers();
         }
@@ -47,18 +54,13 @@ namespace LocalPicturesService
 
             app.UseAuthorization();
 
-            app.UseStaticFiles(); // For the wwwroot folder
-
-            app.UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = new PhysicalFileProvider(
-                    Path.Combine(Directory.GetCurrentDirectory(), "Pictures")),
-        
-                RequestPath = "/Pictures"
-            });
-
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHealthChecks("/hc", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                {
+                    Predicate = _ => true,
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+                });
                 endpoints.MapControllers();
             });
         }

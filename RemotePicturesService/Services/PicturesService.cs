@@ -1,6 +1,8 @@
-﻿using PicturesLib.Infra;
+﻿using PicturesCommon;
+using PicturesLib.Infra;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -15,17 +17,23 @@ namespace RemotePicturesService.Services
             _httpClient = httpClient;
         }
 
-        public async Task<IList<byte[]>> GetPictures()
+        public async Task<IList<Picture>> GetPictures()
         {
-            var img1 = await _httpClient.GetAsync("https://images.unsplash.com/photo-1602524210257-90ba1ca81ea3?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1350&q=80");
-            var img2 = await _httpClient.GetAsync("https://images.unsplash.com/photo-1606114175460-31ba3462a098?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1352&q=80");
+            var imgUrls = new List<string>
+            {
+                "https://cdn.apartmenttherapy.info/image/upload/f_jpg,q_auto:eco,c_fill,g_auto,w_1500,ar_16:9/k%2Farchive%2F2816f86937ebc7019a513d858cec8e0c55d38890",
+                "https://www.thespruceeats.com/thmb/hl4lkmdLO7tj1eDCsGbakfk97Co=/3088x2055/filters:fill(auto,1)/marinated-top-round-steak-3060302-hero-02-ed071d5d7e584bea82857112aa734a94.jpg"
+            };
 
-            var img1ByteArr = await img1.Content.ReadAsByteArrayAsync();
-            var img2ByteArr = await img2.Content.ReadAsByteArrayAsync();
-
-            IList<byte[]> imgs = new List<byte[]>();
-            imgs.Add(img1ByteArr);
-            imgs.Add(img2ByteArr);
+            IList<Picture> imgs = new List<Picture>();
+            foreach (var imgUrl in imgUrls)
+            {
+                imgs.Add(new Picture
+                {
+                    Filename = Path.GetFileName(imgUrl),
+                    Data = await _httpClient.GetByteArrayAsync(imgUrl)
+                });
+            }
 
             return imgs;
         }

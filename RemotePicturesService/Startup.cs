@@ -1,3 +1,4 @@
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
@@ -27,7 +28,19 @@ namespace RemotePicturesService
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddTransient<IPicturesManager, PicturesService>();
+            services.AddHttpClient<IPicturesManager, PicturesService>();
+            //Swagger
+            services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+                {
+                    Title = "Remote pictures service swagger",
+                    Version = "v1.1",
+                    Description = "Demo for .NET Core Swagger",
+                    //TermsOfService = new Uri("https://www.google.com")
+                });
+            });
+            services.AddHealthChecks();
             services.AddControllers();
         }
 
@@ -45,8 +58,20 @@ namespace RemotePicturesService
 
             app.UseAuthorization();
 
+            //In order to see swagger API navigate to the following URL: https://localhost:44332/swagger
+            app.UseSwagger().UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "RemotePicturesAPI");
+                //c.RoutePrefix = string.Empty; //Enable this for accessing Swagger API from service root URI
+            });
+
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapHealthChecks("/hc", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                {
+                    Predicate = _ => true,
+                    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+                });
                 endpoints.MapControllers();
             });
         }
